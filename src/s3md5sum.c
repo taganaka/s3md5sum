@@ -21,6 +21,8 @@ int main(int argc, char const *argv[]) {
 
   if (S3MD5_ParseEtag(&s3_etag, argv[2]) == 0) {
     printf("Chunck #: %d MD5 HexDigest: %s\n", s3_etag.part_number, s3_etag.md5_hexdigest);
+  } else {
+    return EXIT_FAILURE;
   }
 
   fp = fopen(argv[1], "rb");

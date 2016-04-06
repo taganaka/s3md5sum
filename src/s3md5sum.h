@@ -153,10 +153,8 @@ int S3MD5_Update(S3MD5 *s3_md5){
 
     if (readed + buff_size <= part_size_in_bytes)
       to_read = buff_size;
-    else {
+    else
       to_read = part_size_in_bytes - readed;
-      // printf("Toread: %zu\n", to_read);
-    }
 
     current = fread(&buffer, 1, to_read, s3_md5->fp);
 
