@@ -1,0 +1,3 @@
+*.dSYM
+s3md5sum
+s3md5sum-debug
