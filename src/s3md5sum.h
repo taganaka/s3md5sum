@@ -132,7 +132,7 @@ void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func_ptr) {
 }
 
 int S3MD5_Update(S3MD5 *s3_md5){
-  int buff_size = 64000;
+  int buff_size = 64 * BYTES_UNIT;
   unsigned char buffer[buff_size];
 
   size_t part_size_in_bytes = s3_md5->part_size * BYTES_UNIT * BYTES_UNIT;

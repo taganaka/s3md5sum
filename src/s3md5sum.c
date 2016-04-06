@@ -8,7 +8,7 @@ void s3_progress_cb(S3MD5 *s3_md5, size_t idx) {
   for (x = 0; x < MD5_DIGEST_LENGTH; x++)
     sprintf(&md5string[x*2], "%02x", s3_md5->digests[idx][x]);
 
-  printf("Chuck #%zu HexDigest %s\n", idx, md5string);
+  printf("[*] Chuck #%zu HexDigest %s\n", idx + 1, md5string);
 }
 
 int main(int argc, char const *argv[]) {
@@ -55,10 +55,10 @@ int main(int argc, char const *argv[]) {
   size_t current_chunck_size;
   bool found = false;
   for (current_chunck_size = min_chunk_size; current_chunck_size <= max_chunk_size; current_chunck_size++){
-    printf("[*] Try with %zu as chunck size\n", current_chunck_size);
+    printf("[*] Try with %zuMb as chunck size\n", current_chunck_size);
     S3MD5_Init(&s3, fp, current_chunck_size);
     S3MD5_Compute(&s3, s3_progress_cb);
-    printf("S3 Etag: %s\n", s3.s3_etag);
+    printf("[*] S3 Etag: %s\n", s3.s3_etag);
     if (strcmp(s3.s3_etag, argv[2]) == 0) {
       printf("\n \
 Checksum completed!\n \
