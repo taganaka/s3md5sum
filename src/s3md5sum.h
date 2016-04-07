@@ -18,9 +18,10 @@
 #  include <openssl/md5.h>
 #endif
 
-#define BYTES_UNIT 1024
+#define KB_UNIT 1024
 
 typedef unsigned char byte;
+
 typedef struct __S3MD5 {
   size_t size;
   size_t part_size;
@@ -39,7 +40,6 @@ typedef struct __S3ETAG {
   int part_number;
   char md5_hexdigest[33];
 } S3ETAG;
-
 
 typedef void (*FUNC_PTR_CB)(S3MD5 *s3_md5, size_t current_chunk);
 int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s);
@@ -86,7 +86,7 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
   s3_md5->size = st.st_size;
   MD5_Init(&s3_md5->md5c);
 
-  size_in_mb = s3_md5->size / BYTES_UNIT / BYTES_UNIT;
+  size_in_mb = s3_md5->size / KB_UNIT / KB_UNIT;
   s3_md5->part_size = chunck_size;
   s3_md5->part_number  = size_in_mb / chunck_size;
   if (size_in_mb % s3_md5->part_size != 0)
@@ -115,7 +115,7 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
     return -1;
   }
 
-  s3_md5->temp_buffer = (byte*)malloc(64 * BYTES_UNIT);
+  s3_md5->temp_buffer = (byte*)malloc(64 * KB_UNIT);
   if (s3_md5->temp_buffer == NULL){
     perror("malloc");
     return -1;
@@ -151,8 +151,8 @@ void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func_ptr) {
 }
 
 int S3MD5_Update(S3MD5 *s3_md5){
-  int buff_size = 64 * BYTES_UNIT;
-  size_t part_size_in_bytes = s3_md5->part_size * BYTES_UNIT * BYTES_UNIT;
+  int buff_size = 64 * KB_UNIT;
+  size_t part_size_in_bytes = s3_md5->part_size * KB_UNIT * KB_UNIT;
   size_t to_read = 0;
   size_t current = 0;
   size_t readed = 0;

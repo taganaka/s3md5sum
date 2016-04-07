@@ -12,7 +12,7 @@ void s3_progress_cb(S3MD5 *s3_md5, size_t idx) {
   for (x = 0; x < MD5_DIGEST_LENGTH; x++)
     sprintf(&md5string[x*2], "%02x", s3_md5->digests[idx][x]);
 
-  printf("[*] Chuck #%zu HexDigest %s\n", idx + 1, md5string);
+  printf("[*] Chunck #%zu HexDigest %s\n", idx + 1, md5string);
 }
 
 int parse_chunk_size(size_t *dest, char *val){
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
   S3ETAG s3_etag;
   int fd;
   struct stat st;
-  size_t size_in_mb;
+  size_t file_size_in_mb;
   size_t min_chunk_size = 0;
   size_t max_chunk_size = 0;
   size_t multipart_chunk_size_mb = 0;
@@ -72,6 +72,8 @@ int main(int argc, char *argv[]) {
       break;
       default:
         fprintf(stderr, "Usage: %s [-cshV] [file...]\n", argv[0]);
+        if (s3_etag_s != NULL)
+          free(s3_etag_s);
         exit(EXIT_FAILURE);
       }
   }
@@ -79,6 +81,11 @@ int main(int argc, char *argv[]) {
   if (mode == GEN_MODE) {
     if (multipart_chunk_size_mb == 0) {
       multipart_chunk_size_mb = DEFAULT_MULTIPART_CHUNK_SIZE_MB;
+      fprintf(stderr, "%zu\n", multipart_chunk_size_mb);
+    }
+    if (s3_etag_init) {
+      if (verbose)
+        printf("Ignoring -e %s\n", s3_etag_s);
     }
   }
 
@@ -91,13 +98,27 @@ int main(int argc, char *argv[]) {
   char *file_name = argv[argv_index];
   fp = fopen(file_name, "rb");
   if (!fp) {
+    if (s3_etag_s != NULL)
+      free(s3_etag_s);
     perror("fopen");
     return EXIT_FAILURE;
   }
 
   fd = fileno(fp);
   if (fstat(fd, &st) != 0){
+    if (s3_etag_s != NULL)
+      free(s3_etag_s);
     perror("fstat");
+    return EXIT_FAILURE;
+  }
+
+  file_size_in_mb = st.st_size / KB_UNIT / KB_UNIT;
+
+  if (multipart_chunk_size_mb > file_size_in_mb){
+    fprintf(stderr, "multipart_chunk_size_mb is greater than current file size.\n");
+    fclose(fp);
+    if (s3_etag_s != NULL)
+      free(s3_etag_s);
     return EXIT_FAILURE;
   }
 
@@ -105,24 +126,34 @@ int main(int argc, char *argv[]) {
     if (verbose)
       printf("Etag info: chunck #: %d MD5 HexDigest: %s\n", s3_etag.part_number, s3_etag.md5_hexdigest);
     if (multipart_chunk_size_mb == 0){
+
       if (verbose)
         printf("Multipart chunck size not given (-s). Brute force mode on\n");
-      size_in_mb = st.st_size / BYTES_UNIT / BYTES_UNIT;
-      min_chunk_size = size_in_mb / s3_etag.part_number;
-      max_chunk_size = (size_in_mb / (s3_etag.part_number - 1));
 
-      if ((max_chunk_size * s3_etag.part_number) > size_in_mb \
-        && (max_chunk_size * s3_etag.part_number) - size_in_mb == max_chunk_size)
+      min_chunk_size = file_size_in_mb / s3_etag.part_number;
+      max_chunk_size = (file_size_in_mb / (s3_etag.part_number - 1));
+
+      if ((max_chunk_size * s3_etag.part_number) > file_size_in_mb \
+        && (max_chunk_size * s3_etag.part_number) - file_size_in_mb == max_chunk_size)
         max_chunk_size -= 1;
 
-      if (size_in_mb % min_chunk_size != 0)
+      if (file_size_in_mb % min_chunk_size != 0)
         min_chunk_size += 1;
 
       if (verbose)
         printf("Min chunck size: %zu Max chunck size: %zu\n", min_chunk_size, max_chunk_size);
+
+      if ((max_chunk_size - min_chunk_size) > 5) {
+        fprintf(stderr, "WARNING: -s options not given.\n\
+The etag is located somewhere between %zu and %zu. \
+Expect a slow computation if your file is big\n", min_chunk_size, max_chunk_size);
+      }
+
     } else {
       min_chunk_size = max_chunk_size = multipart_chunk_size_mb;
     }
+  } else {
+    min_chunk_size = max_chunk_size = multipart_chunk_size_mb;
   }
 
   if (!verbose)
@@ -132,7 +163,7 @@ int main(int argc, char *argv[]) {
   bool found = false;
   for (current_chunck_size = min_chunk_size; current_chunck_size <= max_chunk_size; current_chunck_size++){
     if (verbose)
-      printf("[*] Try with %zuMb as chunck size\n", current_chunck_size);
+      printf("[*] Trying with %zuMb as chunck size\n", current_chunck_size);
 
     S3MD5_Init(&s3, fp, current_chunck_size);
     S3MD5_Compute(&s3, func_ptr);
@@ -153,24 +184,28 @@ Computed: [%s]\n\n", current_chunck_size, s3_etag_s, s3.s3_etag);
 
         S3MD5_Final(&s3);
         found = true;
-        printf("%s: OK\n", file_name);
+        printf("%s [%zu]: OK\n", file_name, current_chunck_size);
         break;
       }
     }
     S3MD5_Final(&s3);
     fseek(fp, 0, SEEK_SET);
   }
-  fclose(fp);
 
-  if (!found) {
+  if (!found && mode == CHECK_MODE) {
     printf("%s: FAILED\n", file_name);
     fprintf(stderr, "\n\
 %s: WARNING computed checksums did NOT match.\n\
 File looks corrupted. Try to download it again", argv[0]);
   }
 
+  if (mode == GEN_MODE){
+    printf("%s [%zu] %s\n", s3.s3_etag, multipart_chunk_size_mb, file_name);
+  }
+
   if (s3_etag_s != NULL)
     free(s3_etag_s);
 
+  fclose(fp);
   return EXIT_SUCCESS;
 }
