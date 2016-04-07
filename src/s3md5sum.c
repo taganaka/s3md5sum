@@ -196,7 +196,7 @@ Computed: [%s]\n\n", current_chunck_size, s3_etag_s, s3.s3_etag);
     printf("%s: FAILED\n", file_name);
     fprintf(stderr, "\n\
 %s: WARNING computed checksums did NOT match.\n\
-File looks corrupted. Try to download it again", argv[0]);
+File looks corrupted. Try to download it again\n", argv[0]);
   }
 
   if (mode == GEN_MODE){
