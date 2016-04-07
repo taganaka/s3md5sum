@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   size_t min_chunk_size = 0;
   size_t max_chunk_size = 0;
   size_t multipart_chunk_size_mb = 0;
-  char *s3_etag_s;
+  char *s3_etag_s = NULL;
 
   int opt;
   int argv_index;
@@ -51,7 +51,8 @@ int main(int argc, char *argv[]) {
       case 'c': mode = CHECK_MODE; break;
       case 's':
         if (parse_chunk_size(&multipart_chunk_size_mb, optarg) == 0 && multipart_chunk_size_mb > 0){
-          printf("Setting parsed_chunck_size to %zu\n", multipart_chunk_size_mb);
+          if (verbose)
+            printf("Setting multipart_chunk_size_mb to %zu\n", multipart_chunk_size_mb);
         } else {
           fprintf(stderr, "-s %s not a valid number\n", optarg);
           return EXIT_FAILURE;
