@@ -29,6 +29,7 @@ typedef struct __S3MD5 {
   FILE *fp;
   unsigned char **digests;
   unsigned char *final_digest;
+  unsigned char *temp_buffer;
   char *s3_etag;
   MD5_CTX md5c;
 } S3MD5;
@@ -55,6 +56,11 @@ int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s) {
 
   if (sscanf(etag_s, "%32[a-f0-9]-%d", etag->md5_hexdigest, &etag->part_number) != 2){
     fprintf(stderr, "S3MD5_ParseEtag: %s doesn't look like a valid S3 multipart etag (sscanf)\n", etag_s);
+    return -1;
+  }
+
+  if (strlen(etag->md5_hexdigest) != 32){
+    fprintf(stderr, "S3MD5_ParseEtag: %s doesn't look like a valid S3 multipart etag (len != 32)\n", etag_s);
     return -1;
   }
 
@@ -86,6 +92,10 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
 
   int n_of_digits = snprintf(0, 0, "%zu", s3_md5->part_number);
   s3_md5->s3_etag = malloc(34 + n_of_digits);
+  if (s3_md5->s3_etag == NULL){
+    perror("malloc");
+    return -1;
+  }
 
   size_t i;
   s3_md5->digests = (unsigned char**)malloc(s3_md5->part_number * sizeof(char*));
@@ -103,6 +113,12 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
     return -1;
   }
 
+  s3_md5->temp_buffer = (unsigned char*)malloc(64 * BYTES_UNIT);
+  if (s3_md5->temp_buffer == NULL){
+    perror("malloc");
+    return -1;
+  }
+
   return 0;
 }
 
@@ -114,6 +130,7 @@ void S3MD5_Final(S3MD5 *s3_md5){
     free(s3_md5->digests);
     free(s3_md5->final_digest);
     free(s3_md5->s3_etag);
+    free(s3_md5->temp_buffer);
   }
 }
 
@@ -133,15 +150,16 @@ void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func_ptr) {
 
 int S3MD5_Update(S3MD5 *s3_md5){
   int buff_size = 64 * BYTES_UNIT;
-  unsigned char buffer[buff_size];
-
   size_t part_size_in_bytes = s3_md5->part_size * BYTES_UNIT * BYTES_UNIT;
   size_t to_read = 0;
   size_t current = 0;
   size_t readed = 0;
 
   if (s3_md5->current_chunk == s3_md5->part_number){
-    assert(s3_md5->processed == s3_md5->size);
+    if (s3_md5->processed != s3_md5->size){
+      S3MD5_Final(s3_md5);
+      abort();
+    }
     MD5_Final(s3_md5->final_digest, &s3_md5->md5c);
     return -1;
   }
@@ -150,24 +168,23 @@ int S3MD5_Update(S3MD5 *s3_md5){
   MD5_Init(&context);
 
   while (readed < part_size_in_bytes) {
-
     if (readed + buff_size <= part_size_in_bytes)
       to_read = buff_size;
     else
       to_read = part_size_in_bytes - readed;
 
-    current = fread(&buffer, 1, to_read, s3_md5->fp);
+    current = fread(s3_md5->temp_buffer, 1, to_read, s3_md5->fp);
 
     if (current <= 0)
       break;
     readed += current;
-    MD5_Update(&context, buffer, current);
+    MD5_Update(&context, s3_md5->temp_buffer, current);
   }
+
   MD5_Final(s3_md5->digests[s3_md5->current_chunk], &context);
   MD5_Update(&s3_md5->md5c, s3_md5->digests[s3_md5->current_chunk], MD5_DIGEST_LENGTH);
 
   s3_md5->processed += readed;
-
   return s3_md5->current_chunk++;
 }
 
