@@ -20,6 +20,7 @@
 
 #define BYTES_UNIT 1024
 
+typedef unsigned char byte;
 typedef struct __S3MD5 {
   size_t size;
   size_t part_size;
@@ -27,9 +28,9 @@ typedef struct __S3MD5 {
   size_t current_chunk;
   size_t processed;
   FILE *fp;
-  unsigned char **digests;
-  unsigned char *final_digest;
-  unsigned char *temp_buffer;
+  byte **digests;
+  byte *final_digest;
+  byte *temp_buffer;
   char *s3_etag;
   MD5_CTX md5c;
 } S3MD5;
@@ -38,6 +39,7 @@ typedef struct __S3ETAG {
   int part_number;
   char md5_hexdigest[33];
 } S3ETAG;
+
 
 typedef void (*FUNC_PTR_CB)(S3MD5 *s3_md5, size_t current_chunk);
 int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s);
@@ -98,22 +100,22 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
   }
 
   size_t i;
-  s3_md5->digests = (unsigned char**)malloc(s3_md5->part_number * sizeof(char*));
+  s3_md5->digests = (byte**)malloc(s3_md5->part_number * sizeof(char*));
   for (i = 0; i < s3_md5->part_number; i++) {
-    s3_md5->digests[i] = (unsigned char*)malloc(MD5_DIGEST_LENGTH);
+    s3_md5->digests[i] = (byte*)malloc(MD5_DIGEST_LENGTH);
     if (s3_md5->digests[i] == NULL){
       perror("malloc");
       return -1;
     }
   }
 
-  s3_md5->final_digest = (unsigned char*)malloc(MD5_DIGEST_LENGTH);
+  s3_md5->final_digest = (byte*)malloc(MD5_DIGEST_LENGTH);
   if (s3_md5->final_digest == NULL){
     perror("malloc");
     return -1;
   }
 
-  s3_md5->temp_buffer = (unsigned char*)malloc(64 * BYTES_UNIT);
+  s3_md5->temp_buffer = (byte*)malloc(64 * BYTES_UNIT);
   if (s3_md5->temp_buffer == NULL){
     perror("malloc");
     return -1;
