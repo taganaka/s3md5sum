@@ -4,7 +4,7 @@
 #include <limits.h>
 #include "s3md5sum.h"
 
-#define DEFAULT_MULTIPART_CHUNK_SIZE_MB 12
+#define DEFAULT_MULTIPART_CHUNK_SIZE_MB 15
 
 void s3_progress_cb(S3MD5 *s3_md5, size_t idx) {
   char md5string[33];
@@ -81,7 +81,6 @@ int main(int argc, char *argv[]) {
   if (mode == GEN_MODE) {
     if (multipart_chunk_size_mb == 0) {
       multipart_chunk_size_mb = DEFAULT_MULTIPART_CHUNK_SIZE_MB;
-      fprintf(stderr, "%zu\n", multipart_chunk_size_mb);
     }
     if (s3_etag_init) {
       if (verbose)
