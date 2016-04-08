@@ -12,7 +12,7 @@ void s3_progress_cb(S3MD5 *s3_md5, size_t idx) {
   for (x = 0; x < MD5_DIGEST_LENGTH; x++)
     sprintf(&md5string[x*2], "%02x", s3_md5->digests[idx][x]);
 
-  printf("[*] Chunck #%zu HexDigest %s\n", idx + 1, md5string);
+  printf("[*] Chunk #%zu HexDigest %s\n", idx + 1, md5string);
 }
 
 int parse_chunk_size(size_t *dest, char *val){
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
         verbose = true;
       break;
       default:
-        fprintf(stderr, "Usage: %s [-cshV] [file...]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-csehV] [file...]\n", argv[0]);
         if (s3_etag_s != NULL)
           free(s3_etag_s);
         exit(EXIT_FAILURE);
@@ -124,11 +124,11 @@ int main(int argc, char *argv[]) {
 
   if (mode == CHECK_MODE){
     if (verbose)
-      printf("Etag info: chunck #: %d MD5 HexDigest: %s\n", s3_etag.part_number, s3_etag.md5_hexdigest);
+      printf("Etag info: chunk #: %d MD5 HexDigest: %s\n", s3_etag.part_number, s3_etag.md5_hexdigest);
     if (multipart_chunk_size_mb == 0){
 
       if (verbose)
-        printf("Multipart chunck size not given (-s). Brute force mode on\n");
+        printf("Multipart chunk size not given (-s). Brute force mode on\n");
 
       min_chunk_size = file_size_in_mb / s3_etag.part_number;
       max_chunk_size = (file_size_in_mb / (s3_etag.part_number - 1));
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
         min_chunk_size += 1;
 
       if (verbose)
-        printf("Min chunck size: %zu Max chunck size: %zu\n", min_chunk_size, max_chunk_size);
+        printf("Min chunk size: %zu Max chunk size: %zu\n", min_chunk_size, max_chunk_size);
 
       if ((max_chunk_size - min_chunk_size) > 5) {
         fprintf(stderr, "WARNING: -s options not given.\n\
@@ -159,13 +159,13 @@ Expect a slow computation if your file is big\n", min_chunk_size, max_chunk_size
   if (!verbose)
     func_ptr = NULL;
 
-  size_t current_chunck_size;
+  size_t current_chunk_size;
   bool found = false;
-  for (current_chunck_size = min_chunk_size; current_chunck_size <= max_chunk_size; current_chunck_size++){
+  for (current_chunk_size = min_chunk_size; current_chunk_size <= max_chunk_size; current_chunk_size++){
     if (verbose)
-      printf("[*] Trying with %zuMb as chunck size\n", current_chunck_size);
+      printf("[*] Trying with %zuMb as chunk size\n", current_chunk_size);
 
-    S3MD5_Init(&s3, fp, current_chunck_size);
+    S3MD5_Init(&s3, fp, current_chunk_size);
     S3MD5_Compute(&s3, func_ptr);
 
     if (verbose)
@@ -178,13 +178,13 @@ Expect a slow computation if your file is big\n", min_chunk_size, max_chunk_size
           printf("\n\
 Checksum completed.\n\
 File looks valid!\n\
-Chunck size: [%zuMb]\n\
+Chunk size: [%zuMb]\n\
 Given: [%s]\n\
-Computed: [%s]\n\n", current_chunck_size, s3_etag_s, s3.s3_etag);
+Computed: [%s]\n\n", current_chunk_size, s3_etag_s, s3.s3_etag);
 
         S3MD5_Final(&s3);
         found = true;
-        printf("%s [%zu]: OK\n", file_name, current_chunck_size);
+        printf("%s [%zu]: OK\n", file_name, current_chunk_size);
         break;
       }
     }

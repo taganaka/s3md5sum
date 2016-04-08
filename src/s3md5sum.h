@@ -43,10 +43,12 @@ typedef struct __S3ETAG {
 
 typedef void (*FUNC_PTR_CB)(S3MD5 *s3_md5, size_t current_chunk);
 int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s);
-int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size);
+int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size);
 void S3MD5_Final(S3MD5 *s3_md5);
 void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func);
-int S3MD5_Update(S3MD5 *s3_md5);
+
+
+int __S3MD5_Update(S3MD5 *s3_md5);
 
 int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s) {
   int len;
@@ -69,7 +71,7 @@ int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s) {
   return 0;
 }
 
-int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
+int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
   int fd;
   struct stat st;
   size_t size_in_mb;
@@ -87,8 +89,8 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunck_size) {
   MD5_Init(&s3_md5->md5c);
 
   size_in_mb = s3_md5->size / KB_UNIT / KB_UNIT;
-  s3_md5->part_size = chunck_size;
-  s3_md5->part_number  = size_in_mb / chunck_size;
+  s3_md5->part_size = chunk_size;
+  s3_md5->part_number  = size_in_mb / chunk_size;
   if (size_in_mb % s3_md5->part_size != 0)
     s3_md5->part_number++;
 
@@ -138,7 +140,7 @@ void S3MD5_Final(S3MD5 *s3_md5){
 
 void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func_ptr) {
   size_t idx = 0;
-  while ((idx = S3MD5_Update(s3_md5)) != -1) {
+  while ((idx = __S3MD5_Update(s3_md5)) != -1) {
     if (func_ptr != NULL) {
       func_ptr(s3_md5, idx);
     }
@@ -150,7 +152,7 @@ void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func_ptr) {
   sprintf((s3_md5->s3_etag + 33), "%zu", s3_md5->part_number);
 }
 
-int S3MD5_Update(S3MD5 *s3_md5){
+int __S3MD5_Update(S3MD5 *s3_md5){
   int buff_size = 64 * KB_UNIT;
   size_t part_size_in_bytes = s3_md5->part_size * KB_UNIT * KB_UNIT;
   size_t to_read = 0;
