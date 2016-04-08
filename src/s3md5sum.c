@@ -28,6 +28,21 @@ int parse_chunk_size(size_t *dest, char *val){
   return -0;
 }
 
+void usage(const char* prog){
+  fprintf(stderr, "Usage: %s [-cvVh] [-s size] [-e s3_etag] file\n", prog);
+  fprintf(stderr, " -c          Check S3/Etag sums of file\n");
+  fprintf(stderr, " -s size     Part size in megabyte\n");
+  fprintf(stderr, " -e s3_etag  When -c option is given, -e is required\n");
+  fprintf(stderr, " -v          Verbose mode\n");
+  fprintf(stderr, " -V          Display version information and exit\n");
+  fprintf(stderr, " -h          Display this help and exit\n");
+}
+
+void version(const char* prog){
+  fprintf(stderr, "%s: Calculates and verifies the MD5/S3 Etag of a file uploaded on Amazon S3 using multipart S3 API.\n", prog);
+  fprintf(stderr, "Utility version: %s\nAPI version: %s\n",S3MD5_PROG_VERSION, S3MD5_API_VERSION);
+}
+
 int main(int argc, char *argv[]) {
   FILE *fp;
   S3MD5 s3;
@@ -41,13 +56,12 @@ int main(int argc, char *argv[]) {
   char *s3_etag_s = NULL;
 
   int opt;
-  int argv_index;
   enum { CHECK_MODE, GEN_MODE } mode = GEN_MODE;
   bool s3_etag_init = false;
   bool verbose = false;
   FUNC_PTR_CB func_ptr = s3_progress_cb;
 
-  while ((opt = getopt(argc, argv, "cs:e:hV")) != -1) {
+  while ((opt = getopt(argc, argv, "cs:e:hvV")) != -1) {
     switch (opt) {
       case 'c': mode = CHECK_MODE; break;
       case 's':
@@ -68,15 +82,29 @@ int main(int argc, char *argv[]) {
           return EXIT_FAILURE;
         }
       break;
-      case 'V':
+      case 'v':
         verbose = true;
       break;
+      case 'h':
+        usage(argv[0]);
+        return EXIT_SUCCESS;
+      break;
+      case 'V':
+        version(argv[0]);
+        return EXIT_SUCCESS;
+      break;
       default:
-        fprintf(stderr, "Usage: %s [-csehV] [file...]\n", argv[0]);
+        usage(argv[0]);
         if (s3_etag_s != NULL)
           free(s3_etag_s);
         exit(EXIT_FAILURE);
       }
+  }
+
+  // No file given
+  if (optind == argc) {
+    usage(argv[0]);
+    return EXIT_FAILURE;
   }
 
   if (mode == GEN_MODE) {
@@ -94,8 +122,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  argv_index = optind;
-  char *file_name = argv[argv_index];
+  char *file_name = argv[optind];
   fp = fopen(file_name, "rb");
   if (!fp) {
     if (s3_etag_s != NULL)
