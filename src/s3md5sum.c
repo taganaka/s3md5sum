@@ -163,7 +163,7 @@ Expect a slow computation if your file is big\n", min_chunk_size, max_chunk_size
   bool found = false;
   for (current_chunk_size = min_chunk_size; current_chunk_size <= max_chunk_size; current_chunk_size++){
     if (verbose)
-      printf("[*] Trying with %zuMb as chunk size\n", current_chunk_size);
+      printf("[*] Set chunk size to %zuMb\n", current_chunk_size);
 
     S3MD5_Init(&s3, fp, current_chunk_size);
     S3MD5_Compute(&s3, func_ptr);

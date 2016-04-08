@@ -118,7 +118,7 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
     return -1;
   }
 
-  s3_md5->temp_buffer = (byte*)malloc(64 * KB_UNIT);
+  s3_md5->temp_buffer = (byte*)malloc(15 * KB_UNIT * KB_UNIT);
   if (s3_md5->temp_buffer == NULL){
     perror("malloc");
     return -1;
