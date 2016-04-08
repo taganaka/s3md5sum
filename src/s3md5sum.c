@@ -215,6 +215,11 @@ Computed: [%s]\n\n", current_chunk_size, s3_etag_s, s3.s3_etag);
         break;
       }
     }
+
+    if (mode == GEN_MODE){
+      printf("%s [%zu] %s\n", s3.s3_etag, multipart_chunk_size_mb, file_name);
+    }
+    
     S3MD5_Final(&s3);
     fseek(fp, 0, SEEK_SET);
   }
@@ -224,10 +229,6 @@ Computed: [%s]\n\n", current_chunk_size, s3_etag_s, s3.s3_etag);
     fprintf(stderr, "\n\
 %s: WARNING computed checksums did NOT match.\n\
 File looks corrupted. Try to download it again\n", argv[0]);
-  }
-
-  if (mode == GEN_MODE){
-    printf("%s [%zu] %s\n", s3.s3_etag, multipart_chunk_size_mb, file_name);
   }
 
   if (s3_etag_s != NULL)
