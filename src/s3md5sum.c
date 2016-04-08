@@ -4,6 +4,7 @@
 #include <limits.h>
 #include "s3md5sum.h"
 
+#define S3MD5_PROG_VERSION "0.0.1"
 #define DEFAULT_MULTIPART_CHUNK_SIZE_MB 15
 
 void s3_progress_cb(S3MD5 *s3_md5, size_t idx) {

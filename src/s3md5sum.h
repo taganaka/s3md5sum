@@ -18,6 +18,7 @@
 #  include <openssl/md5.h>
 #endif
 
+#define S3MD5_API_VERSION "0.0.1"
 #define KB_UNIT 1024
 
 typedef unsigned char byte;
