@@ -38,9 +38,10 @@ s3://foo-bar/file.tgz (object):
    policy:    none
    cors:      none
    ACL:       user: FULL_CONTROL
-  ```
+```
 
 ### Usage
+
 ```
 s3md5sum [-cvVh] [-s size] [-e s3_etag] file
  -c          Check S3/Etag sums of file
