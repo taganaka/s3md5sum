@@ -42,35 +42,35 @@ typedef struct __S3ETAG {
 } S3ETAG;
 
 typedef void (*FUNC_PTR_CB)(S3MD5 *s3_md5, size_t current_chunk);
-int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s);
-int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size);
+bool S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s);
+bool S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size);
 void S3MD5_Final(S3MD5 *s3_md5);
 void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func);
 
 int __S3MD5_Update(S3MD5 *s3_md5);
 
-int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s) {
+bool S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s) {
   int len;
   len = strlen(etag_s);
   if (len < 34){
     fprintf(stderr, "S3MD5_ParseEtag: %s doesn't look like a valid S3 multipart etag (len)\n", etag_s);
-    return -1;
+    return false;
   }
 
   if (sscanf(etag_s, "%32[a-f0-9]-%d", etag->md5_hexdigest, &etag->part_number) != 2){
     fprintf(stderr, "S3MD5_ParseEtag: %s doesn't look like a valid S3 multipart etag (sscanf)\n", etag_s);
-    return -1;
+    return false;
   }
 
   if (strlen(etag->md5_hexdigest) != 32){
     fprintf(stderr, "S3MD5_ParseEtag: %s doesn't look like a valid S3 multipart etag (len != 32)\n", etag_s);
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
-int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
+bool S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
   int fd;
   struct stat st;
   size_t size_in_mb;
@@ -78,7 +78,7 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
   fd = fileno(fp);
   if (fstat(fd, &st) != 0){
     perror("fstat");
-    return -1;
+    return false;
   }
 
   s3_md5->fp = fp;
@@ -94,10 +94,10 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
     s3_md5->part_number++;
 
   int n_of_digits = snprintf(0, 0, "%zu", s3_md5->part_number);
-  s3_md5->s3_etag = malloc(34 + n_of_digits);
+  s3_md5->s3_etag = (char*)malloc(34 + n_of_digits);
   if (s3_md5->s3_etag == NULL){
     perror("malloc");
-    return -1;
+    return false;
   }
 
   size_t i;
@@ -106,23 +106,23 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size) {
     s3_md5->digests[i] = (byte*)malloc(MD5_DIGEST_LENGTH);
     if (s3_md5->digests[i] == NULL){
       perror("malloc");
-      return -1;
+      return false;
     }
   }
 
   s3_md5->final_digest = (byte*)malloc(MD5_DIGEST_LENGTH);
   if (s3_md5->final_digest == NULL){
     perror("malloc");
-    return -1;
+    return false;
   }
 
   s3_md5->temp_buffer = (byte*)malloc(15 * KB_UNIT * KB_UNIT);
   if (s3_md5->temp_buffer == NULL){
     perror("malloc");
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 void S3MD5_Final(S3MD5 *s3_md5){

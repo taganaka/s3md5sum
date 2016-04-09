@@ -16,16 +16,16 @@ void s3_progress_cb(S3MD5 *s3_md5, size_t idx) {
   printf("[*] Chunk #%zu HexDigest %s\n", idx + 1, md5string);
 }
 
-int parse_chunk_size(size_t *dest, char *val){
+bool parse_chunk_size(size_t *dest, char *val){
   char *end = val;
   errno = 0;
   *dest = strtoll(val, &end, 10);
   if (errno == ERANGE || *dest > INT_MAX) {
-    return -1;
+    return false;
   } else if (*end) {
-    return -1;
+    return false;
   }
-  return -0;
+  return true;
 }
 
 void usage(const char* prog){
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     switch (opt) {
       case 'c': mode = CHECK_MODE; break;
       case 's':
-        if (parse_chunk_size(&multipart_chunk_size_mb, optarg) == 0 && multipart_chunk_size_mb > 0){
+        if (parse_chunk_size(&multipart_chunk_size_mb, optarg) && multipart_chunk_size_mb > 0){
           if (verbose)
             printf("Setting multipart_chunk_size_mb to %zu\n", multipart_chunk_size_mb);
         } else {
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
         }
       break;
       case 'e':
-        if (S3MD5_ParseEtag(&s3_etag, optarg) == 0) {
+        if (S3MD5_ParseEtag(&s3_etag, optarg)) {
           s3_etag_init = true;
           s3_etag_s = (char *)malloc(strlen(optarg) + 1);
           strcpy(s3_etag_s, optarg);
