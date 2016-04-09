@@ -47,7 +47,6 @@ int S3MD5_Init(S3MD5 *s3_md5, FILE *fp, const size_t chunk_size);
 void S3MD5_Final(S3MD5 *s3_md5);
 void S3MD5_Compute(S3MD5 *s3_md5, FUNC_PTR_CB func);
 
-
 int __S3MD5_Update(S3MD5 *s3_md5);
 
 int S3MD5_ParseEtag(S3ETAG *etag, const char *etag_s) {

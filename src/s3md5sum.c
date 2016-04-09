@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
       if ((max_chunk_size - min_chunk_size) > 5) {
         fprintf(stderr, "WARNING: -s options not given.\n\
-The etag is located somewhere between %zu and %zu. \
+The Etag is located somewhere between %zu and %zu. \
 Expect a slow computation if your file is big\n", min_chunk_size, max_chunk_size);
       }
 
@@ -219,7 +219,7 @@ Computed: [%s]\n\n", current_chunk_size, s3_etag_s, s3.s3_etag);
     if (mode == GEN_MODE){
       printf("%s [%zu] %s\n", s3.s3_etag, multipart_chunk_size_mb, file_name);
     }
-    
+
     S3MD5_Final(&s3);
     fseek(fp, 0, SEEK_SET);
   }
